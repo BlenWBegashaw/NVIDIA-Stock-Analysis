@@ -1,0 +1,161 @@
+---
+title: "NVIDIA Stock Analysis"
+author: "Blen Begashaw"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r setup, include=FALSE}
+install.packages("pander")
+library(pander)
+library(dplyr)
+library(tidyverse)
+library(readr)
+NVIDIA99to23<- read_csv("repo-structure/data/1999-2023NVIDIA.csv")
+NVIDIA23to24<- read_csv("repo-structure/data/2023-2024NVIDA.csv")
+```
+
+```{r combined-data,echo=FALSE}
+#merging the two data sets
+NVIDIA99to24 <- bind_rows(NVIDIA99to23, NVIDIA23to24)
+pander(head(NVIDIA99to24, 5))
+pander(tail(NVIDIA99to24, 5))
+```
+
+## Descriptive Analysis 
+Looking at the summary: 
+
+```{r,echo=FALSE}
+# Basic summary statistics for the Closing Price
+summary_stats <- summary(NVIDIA99to24$Close)
+pander(summary_stats)
+
+# Calculate variance
+variance <- var(NVIDIA99to24$Close)
+print(paste("Variance:", variance))
+
+# Calculate range
+price_range <- range(NVIDIA99to24$Close)
+pander(paste("Range:", price_range[1], "to", price_range[2]))
+
+```
+
+## Closing Stock Price
+Visualization showing the closing price of NVIDIA stock from 1999 to 2023:
+
+```{r closefrom99to24}
+ggplot(data = NVIDIA99to24, mapping = aes(x = Date, y = Close))+
+  geom_line()+
+  labs(title = "NVIDIA Closing Stock Price 1999-2024")
+```
+
+```{r closeFrom20to24}
+NVIDIA20to24 <- NVIDIA99to24%>%
+  filter(Date > as.Date("2020-01-01"))
+ggplot(data = NVIDIA20to24, aes(x = Date, y = Close))+
+  geom_line()+
+  labs(title = "NVIDIA Closing Stock Price 2020-2024")
+  
+```
+
+  Using this condensed data frame, we can see the finer detail of the closing prices during this time. Now, this gives the opportunity to ask questions such as why did the closing price decline going into 2022 and what happened at the start of 2024 that created a massive spike in value?
+
+As we can see in the visualization, NVIDIA's stock price restarted their steady incline in late 2022.  What happened in late 2022?
+
+On September 20, 2022, an article was posted on NVIDIA's titled "GeForce RTX 40 Series Graphics Cards: Up To 4X Faster, Powered By 3rd Gen RTX Architecture & NVIDIA DLSS 3" by Andrew Burnes, showcasing the new updates and products NVIDIA's planned on releasing later that year including the GeForce RTX 4090 graphics card that was set to come out on October 12th, 2022. This correctly correlates with the graph and reinforces the validity of the data set.
+
+
+```{r NVIDIA23to24}
+NVIDIA23to24 <- NVIDIA99to24%>%
+  filter(Date > as.Date("2024-01-01"))
+```
+```{r LowvsHigh2024}
+ggplot(data = NVIDIA23to24, aes(x = Date))+
+  geom_line(aes(y = Open, colour = "High"))+
+  geom_line(aes(y = Low, colour = "Low"))+
+  labs(title = "High vs Low 2024",
+       x = "Date",
+       y = "Price")+
+  scale_colour_manual(values = c("High" = "#008080", "Low" = "#FF0000"))
+  
+```
+
+By shrinking the data frame even more, we can see the difference in the "High" price of the stock vs the "Low" price of the stock, especially the difference in March. Using this visualization we can analyze the most optimal days where the difference between the low and the high of the day was large.
+
+
+```{r, eval=TRUE}
+NVIDIA23to24%>%
+  filter(High > 900.0 & Date > as.Date('2024-03-01'))%>%
+  select(Date, High, Close)
+```
+
+And from the script above, we can single out that on '2024-03-08', the high reached its peak at '974' with a closing price of '875'.
+
+```{r, fig.width=10, fig.height=6}
+NVIDIA15to24 <- NVIDIA99to24 %>%
+  filter(Date >= as.Date("2015-01-01") & Date <= as.Date("2023-12-31"))
+ggplot(data = NVIDIA15to24, aes(x = Date)) +
+  geom_line(aes(y = Open, colour = "Open"), linewidth = 0.25) +   
+  geom_line(aes(y = Close, colour = "Close"), linewidth = 0.25) + 
+  labs(title = "NVIDIA Opening and Closing Stock Prices",
+       x = "Date",
+       y = "Price (USD)",
+       colour = "Price Type") +
+  theme_minimal() +
+  scale_colour_manual(values = c("Open" = "#008080", "Close" = "#964B00")) +
+  theme(legend.position="bottom")
+
+```
+
+
+```{r}
+# Calculate the absolute difference between Open and Close prices for each day
+NVIDIA99to24$Price_Difference <- abs(NVIDIA99to24$Open - NVIDIA99to24$Close)
+
+# Order the data by the price difference in descending order and get the top 5
+top_diff_days <- NVIDIA99to24 %>%
+  arrange(desc(Price_Difference)) %>%
+  slice_head(n = 10)
+
+# Display the top 5 dates with the highest price differences
+pander(top_diff_days[, c("Date", "Open", "Close", "Price_Difference")])
+
+```
+
+
+```{r}
+
+# Create a bar chart to display the price differences
+ggplot(top_diff_days, aes(x = reorder(Date, -Price_Difference), y = Price_Difference)) +
+  geom_bar(stat = "identity", fill = "#008080") +  # Using a fixed shade of teal for all bars
+  labs(x = "Date", y = "Price Difference (USD)", title = "Top 10 Days with Highest Price Differences for NVIDIA Stock") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "none")  # Rotate the dates on x-axis for better readability
+
+# Print the top differences for a table view
+pander(top_diff_days[, c("Date", "Open", "Close", "Price_Difference")])
+```
+
+```{r}
+# Correctly calculate daily returns for closing prices
+NVIDIA99to24 <- NVIDIA99to24 %>%
+  mutate(Daily_Returns = (Close / lag(Close, default = first(Close)) - 1) * 100)
+
+```
+
+#### Daily Returns
+
+```{r daily_returns_chart, fig.width=12, fig.height=8}
+# Create a line chart to display daily returns
+ggplot(NVIDIA99to24, aes(x = Date, y = Daily_Returns)) +
+  geom_line(color = "#964B00", size = 1) +  # Use 'size' for the width of the line, and set the color to brown
+  labs(x = "Date", y = "Daily Returns (%)", title = "Daily Returns of NVIDIA Stock") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate the dates on x-axis for better readability
+
+```
+
+It tells us how the stock's closing price has changed from one day to the next, represented as a percentage. This is a measure of the stock's volatility; sharp spikes in the chart, both positive and negative, indicate days with large price movements, suggesting significant buying or selling pressure or reactions to news or market events.
+
+Periods with closely packed vertical movements suggest higher volatility, which could be due to various factors such as earnings announcements, shifts in investor sentiment, or broader market trends. Conversely, flatter periods indicate times of relative stability in the stock's price.
+
+For investors or traders, such a chart can be critical. High volatility may present trading opportunities, with potential for significant gains (or losses), especially for short-term traders. Long-term investors might use this information to identify potentially stable entry or exit points to avoid market noise. It's also noteworthy that such patterns, in the context of broader market trends and news, can inform strategies around risk management and portfolio diversification.
