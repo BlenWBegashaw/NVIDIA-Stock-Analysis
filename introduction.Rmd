@@ -1,0 +1,14 @@
+---
+title: "Data Analytics Final Project Introduction"
+date: "2024-04-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+  NVIDIA is a corporation that has been contributing to the field of technology since the late 90s, pushing and introducing products such as breakthroughs in 3D graphics and graphics cards, parallel processing architecture, and contributions to artificial intelligence and the metaverse. Not only have they made an intriguing impact on the technological world, but have made their presence known creating beneficial opportunities in industries such as Engineering/Construction, Automotive, Energy, Financial, Healthcare and Life Sciences, Gaming, and many more. With advancements in computers and the emergence of Artificial Intelligence these past few years, traders have flocked to the corporation with hopes to get their hands on valuable shares that will be talked about for years to come. The hope for our project is to take data from NVIDIA’s fluctuation in stock price from 1994 to 2024, and identify trends or distinct behavior to then make predictions for its stock price in the future. Not only could this be beneficial financially, but it’s another way to keep an eye on machinery, like artificial intelligence, and how it affects the world. Because almost every industry has implemented technology and has started to step into the world of automation, NVIDIA is going to be the subject of major interest for a lot of people.
+
+https://www.nvidia.com/en-us/industries/ 
+https://www.nvidia.com/en-us/about-nvidia/corporate-timeline/
